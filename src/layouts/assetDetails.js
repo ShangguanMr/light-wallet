@@ -166,17 +166,6 @@ class assetDetails extends Component {
             }
         });
         console.log("xxxxxxxxx", txRoot, transationDetails);
-
-        // this.props.dispatch(blockTransactionList(params));
-        let {token, tokenTotalNum, tokenTotalPrice, addressEKT} = this.props.navigation.state.params;
-        this.setState({
-            transToken: token,
-            transTokenTotalNum: tokenTotalNum,
-            transTokenTotalPrice: tokenTotalPrice,
-            headerTitleOut: '转出' + token,
-            headerTitleIn: '转入' + token,
-            addressEKT: addressEKT
-        })
     }
 
     exDetail(item) {
@@ -202,6 +191,7 @@ class assetDetails extends Component {
     }
 
     _randomItem = ({item, index}) => {
+        let {token} =this.props.navigation.state.params;
         let failIcon = item.result
             ? <View/>
             :
@@ -241,7 +231,7 @@ class assetDetails extends Component {
                                     color: '#231815',
                                     textAlign: 'left'
                                 }}
-                            >{item.transType}{this.state.transToken}</Text>
+                            >{item.transType}{token}</Text>
                             {failIcon}
                         </View>
                         <Text
@@ -298,20 +288,20 @@ class assetDetails extends Component {
     }
 
     render() {
-        let {addressEKT, privkey} = this.props.navigation.state.params;
+        let {addressEKT, privkey,token, tokenTotalNum, tokenTotalPrice,} = this.props.navigation.state.params;
         // 头部组件；
         const HeaderComponent = () => {
             return (
                 <View style={styles.MD}>
                 <View style={styles.MDTotal}>
-                            <Text style={styles.MDTotalCount}>{this.state.transTokenTotalNum}</Text>
+                            <Text style={styles.MDTotalCount}>{tokenTotalNum}</Text>
                             <Text style={styles.MDTotalPrice}> ≈
-                                ¥ {this.state.transTokenTotalPrice ? this.state.transTokenTotalPrice : '-'}</Text>
+                                ¥ {tokenTotalPrice ? tokenTotalPrice : '-'}</Text>
                         </View>
                         <View style={styles.MDTrans}>
                         <Text style={styles.MDTransText}>交易记录</Text>
                 </View>
-                </View>     
+                </View>
             )
         }
         return (
@@ -356,8 +346,8 @@ class assetDetails extends Component {
                             // height : 48
                         }}
                         onPress={() => this.props.navigation.navigate('ItemDeExEkttail', {
-                            headerTitle: this.state.headerTitleIn,
-                            addressEKT: this.state.addressEKT
+                            headerTitle: '转入'+token,
+                            addressEKT: addressEKT
                         })}
                         underlayColor='#ffffff'
                     >
@@ -378,9 +368,9 @@ class assetDetails extends Component {
                         }}
                         underlayColor='#ffcb00'
                         onPress={() => this.props.navigation.navigate('OutCoin1', {
-                            headerTitle: this.state.headerTitleOut,
-                            transToken: this.state.transToken,
-                            transTokenTotalNum: this.state.transTokenTotalNum,
+                            headerTitle: '转出' + token,
+                            transToken: token,
+                            transTokenTotalNum: tokenTotalNum,
                             addressEKT: addressEKT,
                             privkey: privkey,
                             callback:()=>{this._onRefresh()}
