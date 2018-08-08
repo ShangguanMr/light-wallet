@@ -12,17 +12,22 @@ import {
     FlatList,
     TouchableHighlight,
 } from 'react-native';
-import {width, height, getStorage} from "../../utils/common_utils";
+import {width, height, getStorage, setStorage} from "../../utils/common_utils";
 import {connect} from "react-redux";
-import {getUserInfo} from "../../reducers/actions/wallet/wallet";
+import {
+    getUserInfo,
+    getLastBlock,
+    getWallet,
+} from "../../reducers/actions/wallet/wallet";
 
 const topbg = require('../../assets/img/topbg.png');
 const bgadd = require('../../assets/img/addh.png');
 const logoEKT = require('../../assets/img/logoEKT.png');
 
 class wallet extends Component {
-    constructor() {
-        super()
+    constructor(props) {
+        super(props);
+        this.getItemAnyValue = this.getItemAnyValue.bind(this);
         this.state = {
             addressEKT: '',
             allmoney: 0,
@@ -38,13 +43,56 @@ class wallet extends Component {
         }
     }
 
+    getItemAnyValue(result = [], value1, value2, address) {
+        let path_hash = ""
+        result.map((item, index) => {
+            // console.log("item---->", item, item[value1], address, item[value1] === address, typeof item[value1], typeof address);
+            if (item[value1] === address) {
+                path_hash = item[value2]
+            }
+        });
+        return path_hash;
+    }
+
     async componentDidMount() {
+        let that = this;
         const {dispatch} = this.props;
         let address = await getStorage("address");
-        console.log("address", address);
         let params = {};
-        params["address"] = address;
-        dispatch(getUserInfo(params));
+        params['address'] = address;
+        //通过last获取对用的height，statRoot
+        let {statRoot} = await dispatch(getLastBlock()).then((res) => {
+            return res['result']
+        });
+        console.log("xxx1", statRoot);
+        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
+            console.log("xxxx11", res);
+            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
+            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
+        });
+        console.log("xxx2", pathhash);
+        if (!!pathhash) {
+            let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
+                console.log("xxxx22", res);
+                if (res.leaf === true) {
+                    return res['sons'][0]['hash'];
+                } else {
+                    return "";
+                }
+            });
+            console.log("xxx3", leafhash);
+            let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
+                return res
+            });
+            this.setState({
+                allmoney: amount
+            });
+            setStorage("nonce", nonce);
+            console.log("xxx4", nonce, amount, address);
+        } else {
+            setStorage("nonce", 0);
+        }
+
     }
 
     pressTo = () => {
@@ -55,7 +103,7 @@ class wallet extends Component {
     }
 
     pressToDetail = (item) => {
-        const {navigate,state} = this.props.nav;
+        const {navigate, state} = this.props.nav;
         navigate('AssetDetails', {
             headerTitle: item.name,
             token: item.name,
@@ -67,28 +115,41 @@ class wallet extends Component {
     }
 
     async _onRefresh() {
+        let that = this;
         const {dispatch} = this.props;
         let address = await getStorage("address");
-        console.log("address", address);
         let params = {};
-        params["address"] = address;
-        dispatch(getUserInfo(params)).then( (res) => {
-            if (res.status=== 0 && res.msg === 'ok') {
-                if (res.result === null) {
-                    this.setState({
-                        dataList : [{
-                            icon: logoEKT,
-                            name: 'EKT',
-                            number: 100,
-                            price: 0
-                        }]
-                    })
-                    
-                    
+        params['address'] = address;
+        //通过last获取对用的height，statRoot
+        let {statRoot} = await dispatch(getLastBlock()).then((res) => {
+            return res['result']
+        });
+        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
+            console.log("xxxx11", res);
+            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
+            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
+        });
+        if(!!pathhash){
+            let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
+                if (res.leaf === true) {
+                    return res['sons'][0]['hash'];
+                } else {
+                    return "";
                 }
-            }
-        })
+            });
+            let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
+                return res
+            });
+            this.setState({
+                allmoney: amount
+            });
+            setStorage("nonce", nonce);
+        }else{
+            setStorage("nonce", 0);
+        }
+
     }
+
     _renderItem = ({item}) => (
         <TouchableHighlight
             style={{
@@ -128,13 +189,13 @@ class wallet extends Component {
                         fontFamily: 'PingFangSC-Semibold',
                         fontSize: 24,
                         color: '#444444'
-                    }}>{item.number!==0?item.number:'-'}</Text>
+                    }}>{item.number !== 0 ? item.number : '-'}</Text>
                     <Text style={{
                         textAlign: "right",
                         fontFamily: 'PingFangSC-Regular',
                         fontSize: 12,
                         color: '#7d7d7d'
-                    }}> {item.price !==0 ? ' ≈ ¥ ' + item.price : ' - '}</Text>
+                    }}> {item.price !== 0 ? ' ≈ ¥ ' + item.price : ' - '}</Text>
                 </View>
             </View>
         </TouchableHighlight>
@@ -144,33 +205,34 @@ class wallet extends Component {
 
     render() {
         console.log(this.props);
-        
+
         const HeaderComponent = () => {
-            return (<ImageBackground
-                source={topbg}
-                style={styles.topcontent}>
-                <View
-                    style={styles.topword}>
-                    <Text
-                        style={{
-                            color: '#ffffff',
-                            textAlign: 'center',
-                            fontSize: 14,
-                            fontFamily: 'PingFangSc-Light'
-                        }}>我的总资产( ￥ )</Text>
-                    <Text
-                        style={{
-                            color: '#ffffff',
-                            textAlign: 'center',
-                            fontSize: 40,
-                            marginTop: 16,
-                            fontFamily: 'PingFangSC-Medium'
-                        }}>{this.state.allmoney !==0 ? this.state.allmoney : '-'}</Text>
-                </View>
-                <ImageBackground style={styles.add} source={bgadd}>
-                    <Text style={{width: 30, height: 30,}} onPress={this.pressTo}></Text>
-                </ImageBackground>
-            </ImageBackground>)
+            return (<TouchableHighlight onPress={this.pressTo}>
+                <ImageBackground
+                    source={topbg}
+                    style={styles.topcontent}>
+                    <View
+                        style={styles.topword}>
+                        <Text
+                            style={{
+                                color: '#ffffff',
+                                textAlign: 'center',
+                                fontSize: 14,
+                                fontFamily: 'PingFangSc-Light'
+                            }}>我的总资产( ￥ )</Text>
+                        <Text
+                            style={{
+                                color: '#ffffff',
+                                textAlign: 'center',
+                                fontSize: 40,
+                                marginTop: 16,
+                                fontFamily: 'PingFangSC-Medium'
+                            }}>{this.state.allmoney !== 0 ? this.state.allmoney : '-'}</Text>
+                    </View>
+                    <ImageBackground style={styles.add} source={bgadd}>
+                        <Text style={{width: 30, height: 30,}}></Text>
+                    </ImageBackground>
+                </ImageBackground></TouchableHighlight>)
         };
         return (
             <View style={{backgroundColor: '#ffffff', height: height}}>
@@ -178,7 +240,7 @@ class wallet extends Component {
                     <FlatList
                         ListHeaderComponent={HeaderComponent}
                         showsVerticalScrollIndicator={false}
-                        style={{height:height}}
+                        style={{height: height}}
                         data={this.state.dataList}
                         renderItem={this._renderItem}
                         ref={(flatList) => this._flatList = flatList}
@@ -198,6 +260,7 @@ class wallet extends Component {
 
 function mapStateToProps(state) {
     let {useData, init, isRefreshing} = state.wallet;
+    console.log("==========>", isRefreshing);
     return {useData, init, isRefreshing};
 }
 

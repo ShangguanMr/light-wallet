@@ -56,7 +56,7 @@ class outcoin2 extends Component {
 			//输入交易货币数量
 			transNumberInput: '',
 			//按钮是否可点击 默认为true 不可点击
-			
+
 			wallettitle: '请输入交易密码',
 			showPass: false,
 			showMiddle: true,
@@ -67,7 +67,7 @@ class outcoin2 extends Component {
 	}
 
 	componentDidMount() {
-     
+
 	}
 
 	//全部转出按钮
@@ -156,8 +156,7 @@ class outcoin2 extends Component {
 
 	//给 h5 发消息
 	async giveh5() {
-		// let nonce= await getStorage("nonce")||1;
-		let nonce=4;
+		let nonce= await getStorage("nonce");
 		let date = new Date();
 		let {transNumberInput}=this.state;
 		let {addressEKT,privkey,inAddress}=this.props.navigation.state.params;
@@ -182,7 +181,7 @@ class outcoin2 extends Component {
 			privkey:privkey
 		};
 		console.log('messageObj to sign',messageObject);
-		
+
 		let message = JSON.stringify(messageObject)
 		this.refs.webview.postMessage(message);
 		console.log('messageObj to sign11', messageObject);
@@ -259,7 +258,7 @@ class outcoin2 extends Component {
 									+ placeholderSecond
 									+ transTokenTotalNum}
 								value={transNumberInput}
-								onChangeText={(transNumberInput) =>{ 
+								onChangeText={(transNumberInput) =>{
 									// console.log("adsdasdas",transNumberInput,typeof transNumberInput,transTokenTotalNum,typeof transTokenTotalNum);
 									if(transNumberInput>transTokenTotalNum){
 										toastShort("转出数量超出资产总和，请输入合理的数量")
