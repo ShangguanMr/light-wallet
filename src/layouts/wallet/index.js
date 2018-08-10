@@ -27,7 +27,8 @@ const logoEKT = require('../../assets/img/logoEKT.png');
 class wallet extends Component {
     constructor(props) {
         super(props);
-        this.getItemAnyValue = this.getItemAnyValue.bind(this);
+        this.fromHashGetValue = this.fromHashGetValue.bind(this);
+        this.getLeafhash = this.getLeafhash.bind(this);
         this.state = {
             addressEKT: '',
             allmoney: 0,
@@ -43,54 +44,70 @@ class wallet extends Component {
         }
     }
 
-    getItemAnyValue(result = [], value1, value2, address) {
-        let path_hash = ""
-        result.map((item, index) => {
-            // console.log("item---->", item, item[value1], address, item[value1] === address, typeof item[value1], typeof address);
-            if (item[value1] === address) {
-                path_hash = item[value2]
-            }
-        });
-        return path_hash;
+    //通过hash获得value；
+    async fromHashGetValue(hash) {
+        let value = "";
+        if (!!hash) {
+            const {dispatch} = this.props;
+            value = await dispatch(getWallet({"hash": hash}));
+            console.log("xxxxxxValue", value)
+            return value
+        } else {
+            return value
+
+        }
     }
+
+    //判断叶子节点
+    async getLeafhash(hash, address) {
+        let that = this;
+        let str_address = "";
+        let path_hash = "";
+        let result = await this.fromHashGetValue(hash);
+        if (result['sons'] && result['sons'].length > 0) {
+            if (result['leaf'] === true) {
+                return result['sons'][0]['hash'];
+            } else {
+                result['sons'].map((item, index) => {
+                    console.log("address", address);
+                    if (address.indexOf(item['pathValue']) > -1) {
+                        str_address = address.substr(item['pathValue'].length);
+                        path_hash = item['hash'];
+                        console.log("地址片段", str_address, path_hash);
+                    }
+                });
+                return that.getLeafhash(path_hash, str_address)
+            }
+        } else {
+            return ""
+        }
+
+    }
+
 
     async componentDidMount() {
         let that = this;
+        let params = {};
         const {dispatch} = this.props;
         let address = await getStorage("address");
-        let params = {};
         params['address'] = address;
         //通过last获取对用的height，statRoot
-        let {statRoot} = await dispatch(getLastBlock()).then((res) => {
+        let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        console.log("xxx1", statRoot);
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("xxxx11", res);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
-        });
-        console.log("xxx2", pathhash);
-        if (!!pathhash) {
-            let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
-                console.log("xxxx22", res);
-                if (res.leaf === true) {
-                    return res['sons'][0]['hash'];
-                } else {
-                    return "";
-                }
+        console.log("获取到初始的最终的height，statRoot", height, statRoot);
+        let leafhash = await this.getLeafhash(statRoot, address);
+        console.log("leafhash===>", leafhash,);
+        if (!!leafhash) {
+            let result = await this.fromHashGetValue(leafhash);
+            setStorage('nonce',result['nonce']);
+            that.setState({
+                allmoney:result['amount']
             });
-            console.log("xxx3", leafhash);
-            let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-                return res
-            });
-            this.setState({
-                allmoney: amount
-            });
-            setStorage("nonce", nonce);
-            console.log("xxx4", nonce, amount, address);
+            console.log("通过叶子节点查到的最终结果", result);
         } else {
-            setStorage("nonce", 0);
+            setStorage('nonce',0);
+            console.log("新创建的钱包地址，还没有任何交易")
         }
 
     }
@@ -116,38 +133,28 @@ class wallet extends Component {
 
     async _onRefresh() {
         let that = this;
+        let params = {};
         const {dispatch} = this.props;
         let address = await getStorage("address");
-        let params = {};
         params['address'] = address;
         //通过last获取对用的height，statRoot
-        let {statRoot} = await dispatch(getLastBlock()).then((res) => {
+        let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("xxxx11", res);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
-        });
-        if(!!pathhash){
-            let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
-                if (res.leaf === true) {
-                    return res['sons'][0]['hash'];
-                } else {
-                    return "";
-                }
+        console.log("获取到初始的最终的height，statRoot", height, statRoot);
+        let leafhash = await this.getLeafhash(statRoot, address);
+        console.log("leafhash===>", leafhash,);
+        if (!!leafhash) {
+            let result = await this.fromHashGetValue(leafhash);
+            setStorage('nonce',result['nonce']);
+            that.setState({
+                allmoney:result['amount']
             });
-            let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-                return res
-            });
-            this.setState({
-                allmoney: amount
-            });
-            setStorage("nonce", nonce);
-        }else{
-            setStorage("nonce", 0);
+            console.log("通过叶子节点查到的最终结果", result);
+        } else {
+            setStorage('nonce',0);
+            console.log("新创建的钱包地址，还没有任何交易")
         }
-
     }
 
     _renderItem = ({item}) => (

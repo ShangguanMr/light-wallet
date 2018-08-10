@@ -23,12 +23,13 @@ import {
 } from "../reducers/actions/wallet/wallet"
 import {width, height, getStorage} from "../utils/common_utils";
 
-
 class assetDetails extends Component {
     constructor(props) {
         super(props);
-        this.getItemAnyValue=this.getItemAnyValue.bind(this);
-        this.halfHeight=this.halfHeight.bind(this);
+        // this.halfHeight = this.halfHeight.bind(this);
+        this.getLeafhash = this.getLeafhash.bind(this);
+        this.fromHashGetValue = this.fromHashGetValue.bind(this);
+        this.halfHeightSearch = this.halfHeightSearch.bind(this);
         this.state = {
             transToken: '',
             transTokenTotalNum: '',
@@ -63,109 +64,172 @@ class assetDetails extends Component {
 
     }
 
-    getItemAnyValue(result = [], value1, value2, address) {
-        let path_hash = ""
-        result.map((item, index) => {
-            console.log("item---->", item, item[value1], address, item[value1] === address, typeof item[value1], typeof address);
-            if (item[value1] === address) {
-                path_hash = item[value2]
-            }
-        });
-        return path_hash;
+    //通过hash获得value；
+    async fromHashGetValue(hash) {
+        let value = "";
+        if (!!hash) {
+            const {dispatch} = this.props;
+            value = await dispatch(getWallet({"hash": hash}));
+            console.log("xxxxxxValue", value)
+            return value
+        } else {
+            return value
+
+        }
     }
 
-    async halfHeight(minHeight=0, maxHeight=0, currentNonce=0,currentamount=0,address="") {
-        console.log("二分的address",address,currentNonce,currentamount);
-        if (maxHeight < minHeight) {
-            return false
-        }
-        const {dispatch} = this.props;
+    //判断叶子节点
+    async getLeafhash(hash, address) {
         let that = this;
-        let midheight = Math.floor((minHeight + maxHeight) / 2);
-        let {statRoot,txRoot} = await dispatch(getBlocks({"height": midheight})).then((res) => {
-            return res['result']
+        let str_address = "";
+        let path_hash = "";
+        let result = await this.fromHashGetValue(hash);
+        if (result['sons'] && result['sons'].length > 0) {
+            if (result['leaf'] === true) {
+                return result['sons'][0]['hash'];
+            } else {
+                result['sons'].map((item, index) => {
+                    console.log("address", address);
+                    if (address.indexOf(item['pathValue']) > -1) {
+                        str_address = address.substr(item['pathValue'].length);
+                        path_hash = item['hash'];
+                        console.log("地址片段", str_address, path_hash);
+                    }
+                });
+                return that.getLeafhash(path_hash, str_address)
+            }
+        } else {
+            return ""
+        }
+
+    }
+
+    //判断条件是否成立；
+    isDiff(low_result, high_result) {
+        if (low_result['nonce'] === high_result['nonce'] && low_result['amount'] === high_result['amount']) {
+            return true;
+        }
+        return false;
+    }
+
+    //查询对应高度下的tx_id
+    async fromHeightSearch(height, address) {
+        let txList = [];
+        let that = this;
+        let height_res = await that.fromHeighGetValue(height);
+        console.log("height--->", height, "======", height_res,);
+        let txRoot = height_res['txRoot'];
+        let tx_res = await this.fromHashGetValue(txRoot);
+        console.log("tx_res===>", txRoot, tx_res);
+        if (tx_res['sons'] !== null && tx_res['sons'].length > 0) {
+            let list = [];
+            let tx_item = "";
+            let tx_details = "";
+            let item_leaf_hash = await that.getLeafhash(tx_res['sons'][0]['hash'], address);
+            if (!!item_leaf_hash) {
+                tx_item = await that.fromHashGetValue(item_leaf_hash);
+                console.log("item_leaf_hash====>", item_leaf_hash, tx_item);
+                if (!!tx_item) {
+                    list.push(tx_item);
+                    console.log("xxxxx=====>list11", list)
+                }
+            }
+            console.log("xxxxx=====>list", list)
+            if (!!list && list.length > 0) {
+                tx_details = await this.fromHashGetValue(list[0]['txId']);
+                console.log("tx_details===>", tx_details)
+                if (tx_details['from'] === address || tx_details['to'] === address) {
+                    txList.push(tx_details)
+                }
+            }
+        }
+        return txList
+    }
+
+    //
+    merge(low, high) {
+        console.log("左右结果", low, "======", high)
+    }
+
+    //通过height查询对应的值；
+    async fromHeighGetValue(height, key) {
+        const {dispatch} = this.props;
+        let value = await dispatch(getBlocks({"height": height})).then((res) => {
+            if (!!res['result']) {
+                if (key) return res['result'][key];
+                return res['result'];
+            }
+            return ""
         });
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("每次通过statRoot查找到的返回值", res,address);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
-        });
-          let leafhash = await dispatch(getWallet({ "hash": pathhash})).then((res) => {
-              console.log("xxxx22", res);
-              if (res.leaf === true) {
-                  return res['sons'][0]['hash'];
-              }else{
-                  return "";
-              }
-          });
-          let { amount=0, nonce=0} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-              return res
-          });
-          console.log("判断条件是否成立",currentNonce===nonce,currentamount===amount,amount,nonce);
-        if (currentNonce === nonce && currentamount === amount) {
-            return {"height": midheight, "txRoot": txRoot};
-        } else if (currentNonce < nonce) {
-            maxHeight = midheight - 1;
-            return that.halfHeight(minHeight, maxHeight, currentNonce,currentamount,address)
-        } else if (currentNonce > nonce) {
-            minHeight = midheight + 1;
-            return that.halfHeight(minHeight, maxHeight, currentNonce,currentamount,address)
+        console.log("xxxxxxValue", value)
+        return value
+    }
+
+    //二分对比height的nonce以及amount值来查找到对应的记录；
+    async halfHeightSearch(low, high, address, amount = 99999960, nonce = 4) {
+        console.log("高度===》", low, high, address);
+        let that = this;
+        //右边的余额结果；
+        let midHeight = Math.floor((low + high) / 2);
+        let high_statRoot = await that.fromHeighGetValue(high, "statRoot");
+        let highleafhash = await that.getLeafhash(high_statRoot, address);
+        let highresult = await that.fromHashGetValue(highleafhash);
+        console.log("high_result==>", highresult);
+        let mid_statRoot = await that.fromHeighGetValue(midHeight, "statRoot");
+        let midleafhash = await that.getLeafhash(mid_statRoot, address);
+        let midresult = await that.fromHashGetValue(midleafhash);
+        console.log("mid_result==>", midresult);
+        let low_statRoot = await that.fromHeighGetValue(low, "statRoot");
+        let lowleafhash = await that.getLeafhash(low_statRoot, address);
+        let lowresult = await that.fromHashGetValue(lowleafhash);
+        console.log("low_result==>", lowresult);
+        if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
+            //左右区间都有交易
+            return [low, midHeight, midHeight + 1, high]
+        } else if ((lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
+            //左边区间没有，只考虑右边；
+            return [midHeight + 1, high];
+        } else if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce'])) {
+            //右边区间没有，只考虑左边；
+            return [low, midHeight]
         }
     }
+
+    //if (lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) {
+    //             console.log("low相等区间",low,high);
+    //             // low=midHeight+1;
+    //             await that.halfHeightSearch(midHeight, high, address, amount, nonce);
+    //         }else if(midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce']){
+    //             console.log("high相等区间",low,high);
+    //             // high = midHeight - 1;
+    //             await that.halfHeightSearch(low, midHeight, address, amount, nonce);
+    //         }else
 
     async componentDidMount() {
         let that = this;
         let params = {};
         const {dispatch} = this.props;
-        let hash = await getStorage('privkey');
         let address = await getStorage("address");
-        // let address = "968b10ebc111ea3434de7333d82e54890c4a2d8c34577e0e54f3464eb88e3b2f";
-        console.log("hash====>>>>", hash);
         params['address'] = address;
         //通过last获取对用的height，statRoot
-        let {height,statRoot} = await dispatch(getLastBlock()).then((res) => {
+        let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        console.log("xxx1", statRoot);
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("xxxx11", res);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
-        });
-        console.log("xxx2", pathhash);
-        let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
-            console.log("xxxx22", res);
-            if (res.leaf === true) {
-                return res['sons'][0]['hash'];
-            }else{
-                return "";
-            }
-        });
-        console.log("xxx3", leafhash);
-        let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-            return res
-        });
-        console.log("xxx4", nonce,amount,address);
-        let {finallHeight, txRoot} = await that.halfHeight(0, height,nonce,amount,address);
-        // console.log("xxxx4", await that.halfHeight(0, height, nonce,amount,address));
-        let transationDetails = await dispatch(getWallet({"hash": txRoot})).then((res) => {
-            console.log("xxx5", res)
-            if (!!res['sons']) {
-                res['sons'].map((value, index) => {
-                    console.log("xxxxxxxxxxx", value, index);
-                    dispatch(getWallet({"hash": value['hash']})).then((res) => {
-                        if (res.leaf = true) {
-                            dispatch(getWallet({"hash": res["sons"][0]['hash']})).then((res) => {
-                                return res
-                            })
-                        }
-                    })
-                })
-            } else {
-                return [];
-            }
-        });
-        console.log("xxxxxxxxx", txRoot, transationDetails);
+        console.log("获取到初始的最终的height，statRoot", height, statRoot);
+        let leafhash = await this.getLeafhash(statRoot, address);
+        console.log("leafhash===>", leafhash,);
+        if (!!leafhash) {
+            let result = await this.fromHashGetValue(leafhash);
+            console.log("通过叶子节点查到的最终结果", result);
+            let res = await this.halfHeightSearch(1,395, address)
+            console.log("最终结果res==>", res);
+        } else {
+            console.log("新创建的钱包地址，还没有任何交易")
+        }
+
+    }
+
+    componentWillUnmount() {
     }
 
     exDetail(item) {
@@ -191,7 +255,7 @@ class assetDetails extends Component {
     }
 
     _randomItem = ({item, index}) => {
-        let {token} =this.props.navigation.state.params;
+        let {token} = this.props.navigation.state.params;
         let failIcon = item.result
             ? <View/>
             :
@@ -266,9 +330,11 @@ class assetDetails extends Component {
             </TouchableHighlight>
         )
     };
-    _onRefresh(){
+
+    _onRefresh() {
         console.log("刷新----》",);
     }
+
     _keyExtractor = (item, index) => index + '';
 
     EmptyList() {
@@ -288,44 +354,44 @@ class assetDetails extends Component {
     }
 
     render() {
-        let {addressEKT, privkey,token, tokenTotalNum, tokenTotalPrice,} = this.props.navigation.state.params;
+        let {addressEKT, privkey, token, tokenTotalNum, tokenTotalPrice,} = this.props.navigation.state.params;
         // 头部组件；
         const HeaderComponent = () => {
             return (
                 <View style={styles.MD}>
-                <View style={styles.MDTotal}>
-                            <Text style={styles.MDTotalCount}>{tokenTotalNum}</Text>
-                            <Text style={styles.MDTotalPrice}> ≈
-                                ¥ {tokenTotalPrice ? tokenTotalPrice : '-'}</Text>
-                        </View>
-                        <View style={styles.MDTrans}>
+                    <View style={styles.MDTotal}>
+                        <Text style={styles.MDTotalCount}>{tokenTotalNum}</Text>
+                        <Text style={styles.MDTotalPrice}> ≈
+                            ¥ {tokenTotalPrice ? tokenTotalPrice : '-'}</Text>
+                    </View>
+                    <View style={styles.MDTrans}>
                         <Text style={styles.MDTransText}>交易记录</Text>
-                </View>
+                    </View>
                 </View>
             )
         }
         return (
-            <View style={{backgroundColor: '#fff',flex:1, position: 'relative'}}>
-                        <View style={styles.MDList}>
-                            <FlatList
-                                data={this.state.data}
-                                style={{height:height}}
-                                ref={(flatList) => this._flatList = flatList}
-                                renderItem={this._randomItem}
-                                keyExtractor={this._keyExtractor}
-                                ListEmptyComponent={this.EmptyList}
-                                ListHeaderComponent={HeaderComponent}
-                                showsVerticalScrollIndicator={false}
-                                 // onEndReachedThreshold={0} //滚动距底部0像素触发
-                                onRefresh={this._onRefresh.bind(this)} //刷新
-                                // onEndReached={this._onEndReach.bind(this)} //分页处理函数
-                                refreshing={this.props.isRefreshing} //刷新加载中提示
-                                // ListFooterComponent={this._renderFooter.bind(this)}//分页底部提示框
-                                // getItemLayout={(data, index) => ({ length: 75, offset: (74 + 1) * index, index })}
-                            />
-                        </View>
-                        <View style={{height: 48, width: '100%'}}></View>
-                    {/* </View> */}
+            <View style={{backgroundColor: '#fff', flex: 1, position: 'relative'}}>
+                <View style={styles.MDList}>
+                    <FlatList
+                        data={this.state.data}
+                        style={{height: height}}
+                        ref={(flatList) => this._flatList = flatList}
+                        renderItem={this._randomItem}
+                        keyExtractor={this._keyExtractor}
+                        ListEmptyComponent={this.EmptyList}
+                        ListHeaderComponent={HeaderComponent}
+                        showsVerticalScrollIndicator={false}
+                        // onEndReachedThreshold={0} //滚动距底部0像素触发
+                        onRefresh={this._onRefresh.bind(this)} //刷新
+                        // onEndReached={this._onEndReach.bind(this)} //分页处理函数
+                        refreshing={this.props.isRefreshing} //刷新加载中提示
+                        // ListFooterComponent={this._renderFooter.bind(this)}//分页底部提示框
+                        // getItemLayout={(data, index) => ({ length: 75, offset: (74 + 1) * index, index })}
+                    />
+                </View>
+                <View style={{height: 48, width: '100%'}}></View>
+                {/* </View> */}
                 {/* // </ScrollView> */}
                 <View
                     style={{
@@ -346,7 +412,7 @@ class assetDetails extends Component {
                             // height : 48
                         }}
                         onPress={() => this.props.navigation.navigate('ItemDeExEkttail', {
-                            headerTitle: '转入'+token,
+                            headerTitle: '转入' + token,
                             addressEKT: addressEKT
                         })}
                         underlayColor='#ffffff'
@@ -373,7 +439,9 @@ class assetDetails extends Component {
                             transTokenTotalNum: tokenTotalNum,
                             addressEKT: addressEKT,
                             privkey: privkey,
-                            callback:()=>{this._onRefresh()}
+                            callback: () => {
+                                this._onRefresh()
+                            }
                         })}>
                         <Text
                             style={{
@@ -390,65 +458,72 @@ class assetDetails extends Component {
     }
 }
 
-function mapStateToProps(state) {
-    let {itemDetails, init,isRefreshing} = state.wallet;
-    return {itemDetails, init,isRefreshing};
+function
+
+mapStateToProps(state) {
+    let {itemDetails, init, isRefreshing} = state.wallet;
+    return {itemDetails, init, isRefreshing};
 }
 
-export default connect(mapStateToProps)(assetDetails)
+export default connect(mapStateToProps)
 
-const styles = StyleSheet.create({
-    MD: {
-        paddingTop: 30,
-    },
-    MDTotal: {
-        backgroundColor: '#ffffff'
-    },
-    MDTotalCount: {
-        textAlign: 'center',
-        fontFamily: 'PingFangSC-Medium',
-        fontSize: 40,
-        color: '#231815'
-    },
-    MDTotalPrice: {
-        marginTop: 20,
-        textAlign: 'center',
-        fontFamily: 'PingFangSC-Regular',
-        fontSize: 14,
-        color: '#444444'
-    },
-    MDTrans: {
-        marginTop: 36,
-        backgroundColor: '#f8f8f8',
-    },
-    MDTransText: {
-        marginLeft: 16,
-        height: 35,
-        lineHeight: 35,
-        textAlign: 'left',
-        fontFamily: 'PingFangSC-Regular',
-        fontSize: 16,
-        color: '#231815'
-    },
-    MDList: {
-        backgroundColor: '#ffffff'
-    },
-    MDListItem: {
-        flexDirection: 'column',
-        height: 74,
-        borderBottomWidth: 1,
-        borderBottomColor: '#dddddd',
-        marginLeft: 16,
-        marginRight: 16,
-    },
-    MDListItemF: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 18,
-        justifyContent: 'space-between',
-    },
-    MDListItemS: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    }
-});
+(
+    assetDetails
+)
+
+const
+    styles = StyleSheet.create({
+        MD: {
+            paddingTop: 30,
+        },
+        MDTotal: {
+            backgroundColor: '#ffffff'
+        },
+        MDTotalCount: {
+            textAlign: 'center',
+            fontFamily: 'PingFangSC-Medium',
+            fontSize: 40,
+            color: '#231815'
+        },
+        MDTotalPrice: {
+            marginTop: 20,
+            textAlign: 'center',
+            fontFamily: 'PingFangSC-Regular',
+            fontSize: 14,
+            color: '#444444'
+        },
+        MDTrans: {
+            marginTop: 36,
+            backgroundColor: '#f8f8f8',
+        },
+        MDTransText: {
+            marginLeft: 16,
+            height: 35,
+            lineHeight: 35,
+            textAlign: 'left',
+            fontFamily: 'PingFangSC-Regular',
+            fontSize: 16,
+            color: '#231815'
+        },
+        MDList: {
+            backgroundColor: '#ffffff'
+        },
+        MDListItem: {
+            flexDirection: 'column',
+            height: 74,
+            borderBottomWidth: 1,
+            borderBottomColor: '#dddddd',
+            marginLeft: 16,
+            marginRight: 16,
+        },
+        MDListItemF: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginTop: 18,
+            justifyContent: 'space-between',
+        },
+        MDListItemS: {
+            flexDirection: 'row',
+            justifyContent: 'space-between'
+        }
+    });
