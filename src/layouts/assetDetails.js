@@ -23,13 +23,16 @@ import {
 } from "../reducers/actions/wallet/wallet"
 import {width, height, getStorage} from "../utils/common_utils";
 
+let heights = [];
+let txList = [];
+
 class assetDetails extends Component {
     constructor(props) {
         super(props);
-        // this.halfHeight = this.halfHeight.bind(this);
         this.getLeafhash = this.getLeafhash.bind(this);
         this.fromHashGetValue = this.fromHashGetValue.bind(this);
         this.halfHeightSearch = this.halfHeightSearch.bind(this);
+        this.fromHeightSearch = this.fromHeightSearch.bind(this);
         this.state = {
             transToken: '',
             transTokenTotalNum: '',
@@ -104,17 +107,8 @@ class assetDetails extends Component {
 
     }
 
-    //判断条件是否成立；
-    isDiff(low_result, high_result) {
-        if (low_result['nonce'] === high_result['nonce'] && low_result['amount'] === high_result['amount']) {
-            return true;
-        }
-        return false;
-    }
-
     //查询对应高度下的tx_id
     async fromHeightSearch(height, address) {
-        let txList = [];
         let that = this;
         let height_res = await that.fromHeighGetValue(height);
         console.log("height--->", height, "======", height_res,);
@@ -139,16 +133,11 @@ class assetDetails extends Component {
                 tx_details = await this.fromHashGetValue(list[0]['txId']);
                 console.log("tx_details===>", tx_details)
                 if (tx_details['from'] === address || tx_details['to'] === address) {
-                    txList.push(tx_details)
+                    txList.push(tx_details);
                 }
             }
         }
-        return txList
-    }
-
-    //
-    merge(low, high) {
-        console.log("左右结果", low, "======", high)
+        return txList;
     }
 
     //通过height查询对应的值；
@@ -166,7 +155,7 @@ class assetDetails extends Component {
     }
 
     //二分对比height的nonce以及amount值来查找到对应的记录；
-    async halfHeightSearch(low, high, address, amount = 99999960, nonce = 4) {
+    async halfHeightSearch(low, high, address) {
         console.log("高度===》", low, high, address);
         let that = this;
         //右边的余额结果；
@@ -183,27 +172,29 @@ class assetDetails extends Component {
         let lowleafhash = await that.getLeafhash(low_statRoot, address);
         let lowresult = await that.fromHashGetValue(lowleafhash);
         console.log("low_result==>", lowresult);
-        if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
+        if ((lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) && (midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce'])) {
+            console.log("没有交易==》", low, midHeight, high);
+            heights.push(low);
+            console.log("heights===>", heights);
+            return heights;
+        } else if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
             //左右区间都有交易
-            return [low, midHeight, midHeight + 1, high]
+            console.log("左右区间都有交易", low, midHeight, high);
+            await that.halfHeightSearch(low, midHeight, address);
+            await that.halfHeightSearch(midHeight + 1, high, address);
+            // return [low, midHeight, midHeight + 1, high]
         } else if ((lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
             //左边区间没有，只考虑右边；
-            return [midHeight + 1, high];
+            console.log("左边区间没有，只考虑右边", midHeight, high);
+            // return [midHeight + 1, high];
+            await that.halfHeightSearch(midHeight + 1, high, address);
         } else if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce'])) {
             //右边区间没有，只考虑左边；
-            return [low, midHeight]
+            console.log("右边区间没有，只考虑左边", low, midHeight);
+            // return [low, midHeight]
+            await that.halfHeightSearch(low, midHeight, address)
         }
     }
-
-    //if (lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) {
-    //             console.log("low相等区间",low,high);
-    //             // low=midHeight+1;
-    //             await that.halfHeightSearch(midHeight, high, address, amount, nonce);
-    //         }else if(midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce']){
-    //             console.log("high相等区间",low,high);
-    //             // high = midHeight - 1;
-    //             await that.halfHeightSearch(low, midHeight, address, amount, nonce);
-    //         }else
 
     async componentDidMount() {
         let that = this;
@@ -221,8 +212,22 @@ class assetDetails extends Component {
         if (!!leafhash) {
             let result = await this.fromHashGetValue(leafhash);
             console.log("通过叶子节点查到的最终结果", result);
-            let res = await this.halfHeightSearch(1,395, address)
-            console.log("最终结果res==>", res);
+            let res = await this.halfHeightSearch(1, 400, address).then((res) => {
+                console.log("结果", res, heights);
+            });
+            console.log("最终结果res==>", res, heights);
+            if (heights.length > 0) {
+                // for(let i=0;i<heights.length;i++){
+                //     await that.fromHeightSearch(heights[i])
+                // }
+                let ress;
+                heights.map(async (item, index) => {
+                    ress = await that.fromHeightSearch(item, address);
+                    console.log("交易信息===》0", ress, txList)
+                });
+                console.log("交易信息===》", ress, txList)
+            }
+            console.log("交易信息===》2", txList)
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
         }
@@ -230,6 +235,8 @@ class assetDetails extends Component {
     }
 
     componentWillUnmount() {
+        heights = [];
+        txList = [];
     }
 
     exDetail(item) {
