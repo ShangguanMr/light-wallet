@@ -80,12 +80,12 @@ function check500(res) {
 
 function check200(res) {
     return res.json().then(function (data) {
-        console.log('请求的初始数据+++++',data,res);
+        // console.log('请求的初始数据+++++',data,res);
         if (res.status && res.status >= 200 && res.status < 300) {
-                if (data.msg) {
-                    toastShort(data.msg);
-                }
-                console.log("http请求返回数据：", data);
+                // if (data.msg) {
+                //     toastShort(data.msg);
+                // }
+                // console.log("http请求返回数据：", data);
                 return data;
         } else {
             if (data.error) {
