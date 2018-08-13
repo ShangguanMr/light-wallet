@@ -86,18 +86,21 @@ export default function wallet(state = initialState, action) {
         case "getWalletInfoSuccess":
             return Object.assign({}, state, {
                 data: action.data,
-                init: false
+                init: false,
+                isRefreshing: false
             });
         //最后一个区块
         case "getLastBlockSuccess":
             return Object.assign({}, state, {
                 lastBlockData: action.data,
-                init: false
+                init: false,
+                isRefreshing: false
             });
         case "getLastBlockError":
             return Object.assign({}, state, {
                 lastBlockData: initialState.lastBlockData,
-                init: false
+                init: false,
+                isRefreshing: false
             });
 
         //根据高度获取区块
