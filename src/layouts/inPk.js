@@ -14,7 +14,7 @@ import {
 	InteractionManager
 } from "react-native";
 import Toast from '../components/toast'
-import {setStorage,resetFP} from '../utils/common_utils'
+import {setStorage,resetNavigation, getStorage} from '../utils/common_utils'
 import {toastShort} from '../utils/ToastUtil'
 
 const websource = (Platform.OS == 'ios') ?
@@ -62,10 +62,9 @@ export default class inPk extends Component {
 		
 	}
 
-	inPathFrom = () => {
+	async inPathFrom(){
 		let {walletPk} = this.state ;
 		console.log(walletPk);
-		
 		let rg = /^[0-9a-fA-F]{64}$/
 		if (rg.test(walletPk)) {
 			let {inPath,privkey,addressEKT} = this.props.navigation.state.params;
@@ -87,9 +86,17 @@ export default class inPk extends Component {
 					break;
 					//参数和条件需要添加 不完全
 				case 'wakeUp':
+					let privkey = await getStorage('privkey')
+					console.log(privkey,walletPk,privkey===walletPk);
+					
 					if (privkey === walletPk) {
 						//跳转到设置密码页面
-						this.props.navigation.navigate('App')
+						this.props.navigation.navigate('SetPass', {
+							headerTitle: '设置钱包密码',
+							addressEKT: addressEKT,
+							inPath: inPath,
+							privkey : walletPk
+						})
 					} else {
 						this.setState({
 							showDiffPriv: true
@@ -174,14 +181,15 @@ export default class inPk extends Component {
 		console.log('inPK=========>',inPath)
 		setStorage("address", data.addressSha256);
 		setStorage("privkey", this.state.walletPk);
-		console.log("输入密码创建的数据data==》", data);
+		console.log("输入密码创建的数据data==》", data , this.props);
 		InteractionManager.runAfterInteractions( () => {
-			this.props.navigation.dispatch(resetFP(0,'SetPass', {
-				headerTitle : '设置交易密码',
+			console.log('inPK========>jump',this.props);
+			this.props.navigation.dispatch(resetNavigation(0, 'SetPass', {
+				headerTitle: '设置交易密码',
 				showBackUp: false,
 				addressEKT: data.addressSha256,
-				privkey: this.state.walletPk ,
-				inPath : inPath
+				privkey: this.state.walletPk,
+				inPath: inPath
 			}))
 		})	
 	}

@@ -23,12 +23,12 @@ import {
 } from "../reducers/actions/wallet/wallet"
 import {width, height, getStorage} from "../utils/common_utils";
 
-
 class assetDetails extends Component {
     constructor(props) {
         super(props);
-        this.getItemAnyValue=this.getItemAnyValue.bind(this);
-        this.halfHeight=this.halfHeight.bind(this);
+        // this.halfHeight = this.halfHeight.bind(this);
+        // this.getLeafhash = this.getLeafhash.bind(this);
+        // this.fromHashGetValue = this.fromHashGetValue.bind(this);
         this.state = {
             transToken: '',
             transTokenTotalNum: '',
@@ -63,120 +63,97 @@ class assetDetails extends Component {
 
     }
 
-    getItemAnyValue(result = [], value1, value2, address) {
-        let path_hash = ""
-        result.map((item, index) => {
-            console.log("item---->", item, item[value1], address, item[value1] === address, typeof item[value1], typeof address);
-            if (item[value1] === address) {
-                path_hash = item[value2]
-            }
-        });
-        return path_hash;
+    //通过hash获得value；
+    async fromHashGetValue(hash) {
+        let value = "";
+        if (!!hash) {
+            const {dispatch} = this.props;
+            value = await dispatch(getWallet({"hash": hash})).then((res)=>{
+                return res;
+            });
+            console.log("xxxxxxValue",value)
+            return value
+        } else {
+            return value
+
+        }
     }
 
-    async halfHeight(minHeight=0, maxHeight=0, currentNonce=0,currentamount=0,address="") {
-        console.log("二分的address",address,currentNonce,currentamount);
-        if (maxHeight < minHeight) {
-            return false
+    //判断叶子节点
+    async getLeafhash(hash, address) {
+        let str_address = "";
+        let result = await this.fromHashGetValue(hash)
+
+        console.log("xxxxxxresult",result);
+        if (result['leaf']){
+            let a = result.sons[0].hash;
+            console.log(a);
+            return  a
+        } else {
+            //非叶子节点
+            for (let i = 0; i < result['sons'].length; i++) {
+                if (address.indexOf(result['sons'][i].pathValue) === 0) {
+                    str_address = address.substr(result['sons'][i].pathValue.length);
+                    this.getLeafhash(result['sons'][i]['hash'], str_address);
+                }
+            }
         }
-        const {dispatch} = this.props;
-        let that = this;
-        let midheight = Math.floor((minHeight + maxHeight) / 2);
-        let {statRoot,txRoot} = await dispatch(getBlocks({"height": midheight})).then((res) => {
-            return res['result']
-        });
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("每次通过statRoot查找到的返回值", res,address);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
-        });
-          let leafhash = await dispatch(getWallet({ "hash": pathhash})).then((res) => {
-              console.log("xxxx22", res);
-              if (res.leaf === true) {
-                  return res['sons'][0]['hash'];
-              }else{
-                  return "";
-              }
-          });
-          let { amount=0, nonce=0} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-              return res
-          });
-          console.log("判断条件是否成立",currentNonce===nonce,currentamount===amount,amount,nonce);
-        if (currentNonce === nonce && currentamount === amount) {
-            return {"height": midheight, "txRoot": txRoot};
-        } else if (currentNonce < nonce) {
-            maxHeight = midheight - 1;
-            return that.halfHeight(minHeight, maxHeight, currentNonce,currentamount,address)
-        } else if (currentNonce > nonce) {
-            minHeight = midheight + 1;
-            return that.halfHeight(minHeight, maxHeight, currentNonce,currentamount,address)
-        }
+        // if (result['sons'] && result['sons'].length > 0) {
+        //     if (result['leaf'] === true) {
+
+        //        return result['sons'][0]['hash'];
+        //     } else {
+        //        // result['sons'].map((item, index) => {
+        //        //      console.log("address", address);
+        //        //      if (address.indexOf(item['pathValue']) > -1) {
+        //        //          str_address = address.substr(item['pathValue'].length);
+        //        //          console.log("地址片段", str_address);
+        //        //          this.getLeafhash(item['hash'], str_address);
+        //        //      }
+        //        //  });
+        //         for (let i = 0 ; i < result['sons'].length; i++) {
+        //             if (address.indexOf(result['sons'][i]['pathValue']) > -1) {
+        //                  str_address = address.substr(result['sons'][i]['pathValue'].length);
+        //                  console.log("地址片段", str_address);
+        //                  await this.getLeafhash(result['sons'][i]['hash'], str_address);
+        //              }
+        //         }
+        //     }
+        // } else {
+        //     return {}
+        // }
     }
+
 
     async componentDidMount() {
         let that = this;
         let params = {};
         const {dispatch} = this.props;
-        let hash = await getStorage('privkey');
         let address = await getStorage("address");
-        // let address = "968b10ebc111ea3434de7333d82e54890c4a2d8c34577e0e54f3464eb88e3b2f";
-        console.log("hash====>>>>", hash);
         params['address'] = address;
         //通过last获取对用的height，statRoot
-        let {height,statRoot} = await dispatch(getLastBlock()).then((res) => {
+        let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        console.log("xxx1", statRoot);
-        let pathhash = await dispatch(getWallet({"hash": statRoot})).then((res) => {
-            console.log("xxxx11", res);
-            //遍历sons中的pathValue 等于address 拿到对应的hash调用接口
-            return that.getItemAnyValue(res['sons'], "pathValue", "hash", address);
+        console.log("获取到初始的最终的height，statRoot", height, statRoot);
+        let leafhash = await this.getLeafhash(statRoot, address).then((res)=>{
+            console.log("xxxxxx",res);
+            return res;
         });
-        console.log("xxx2", pathhash);
-        let leafhash = await dispatch(getWallet({"hash": pathhash})).then((res) => {
-            console.log("xxxx22", res);
-            if (res.leaf === true) {
-                return res['sons'][0]['hash'];
-            }else{
-                return "";
-            }
-        });
-        console.log("xxx3", leafhash);
-        let {amount, nonce} = await dispatch(getWallet({"hash": leafhash})).then((res) => {
-            return res
-        });
-        console.log("xxx4", nonce,amount,address);
-        let {finallHeight, txRoot} = await that.halfHeight(0, height,nonce,amount,address);
-        // console.log("xxxx4", await that.halfHeight(0, height, nonce,amount,address));
-        let transationDetails = await dispatch(getWallet({"hash": txRoot})).then((res) => {
-            console.log("xxx5", res)
-            if (!!res['sons']) {
-                res['sons'].map((value, index) => {
-                    console.log("xxxxxxxxxxx", value, index);
-                    dispatch(getWallet({"hash": value['hash']})).then((res) => {
-                        if (res.leaf = true) {
-                            dispatch(getWallet({"hash": res["sons"][0]['hash']})).then((res) => {
-                                return res
-                            })
-                        }
-                    })
-                })
-            } else {
-                return [];
-            }
-        });
-        console.log("xxxxxxxxx", txRoot, transationDetails);
+        // let leafhash=await this.fromHashGetValue(statRoot).then((res)=>{
+        //     return res
+        // })
+        console.log("leafhash===>",leafhash,)
+        // if (!!leafhash) {
+        //     let result = await this.fromHashGetValue(leafhash);
+        //     console.log("通过叶子节点查到的最终结果", result);
+        // } else {
+        //     console.log("新创建的钱包地址，还没有任何交易")
+        // }
 
-        // this.props.dispatch(blockTransactionList(params));
-        let {token, tokenTotalNum, tokenTotalPrice, addressEKT} = this.props.navigation.state.params;
-        this.setState({
-            transToken: token,
-            transTokenTotalNum: tokenTotalNum,
-            transTokenTotalPrice: tokenTotalPrice,
-            headerTitleOut: '转出' + token,
-            headerTitleIn: '转入' + token,
-            addressEKT: addressEKT
-        })
+    }
+
+    componentWillUnmount() {
     }
 
     exDetail(item) {
@@ -202,6 +179,7 @@ class assetDetails extends Component {
     }
 
     _randomItem = ({item, index}) => {
+        let {token} = this.props.navigation.state.params;
         let failIcon = item.result
             ? <View/>
             :
@@ -241,7 +219,7 @@ class assetDetails extends Component {
                                     color: '#231815',
                                     textAlign: 'left'
                                 }}
-                            >{item.transType}{this.state.transToken}</Text>
+                            >{item.transType}{token}</Text>
                             {failIcon}
                         </View>
                         <Text
@@ -276,9 +254,11 @@ class assetDetails extends Component {
             </TouchableHighlight>
         )
     };
-    _onRefresh(){
+
+    _onRefresh() {
         console.log("刷新----》",);
     }
+
     _keyExtractor = (item, index) => index + '';
 
     EmptyList() {
@@ -298,44 +278,44 @@ class assetDetails extends Component {
     }
 
     render() {
-        let {addressEKT, privkey} = this.props.navigation.state.params;
+        let {addressEKT, privkey, token, tokenTotalNum, tokenTotalPrice,} = this.props.navigation.state.params;
         // 头部组件；
         const HeaderComponent = () => {
             return (
                 <View style={styles.MD}>
-                <View style={styles.MDTotal}>
-                            <Text style={styles.MDTotalCount}>{this.state.transTokenTotalNum}</Text>
-                            <Text style={styles.MDTotalPrice}> ≈
-                                ¥ {this.state.transTokenTotalPrice ? this.state.transTokenTotalPrice : '-'}</Text>
-                        </View>
-                        <View style={styles.MDTrans}>
+                    <View style={styles.MDTotal}>
+                        <Text style={styles.MDTotalCount}>{tokenTotalNum}</Text>
+                        <Text style={styles.MDTotalPrice}> ≈
+                            ¥ {tokenTotalPrice ? tokenTotalPrice : '-'}</Text>
+                    </View>
+                    <View style={styles.MDTrans}>
                         <Text style={styles.MDTransText}>交易记录</Text>
+                    </View>
                 </View>
-                </View>     
             )
         }
         return (
-            <View style={{backgroundColor: '#fff',flex:1, position: 'relative'}}>
-                        <View style={styles.MDList}>
-                            <FlatList
-                                data={this.state.data}
-                                style={{height:height}}
-                                ref={(flatList) => this._flatList = flatList}
-                                renderItem={this._randomItem}
-                                keyExtractor={this._keyExtractor}
-                                ListEmptyComponent={this.EmptyList}
-                                ListHeaderComponent={HeaderComponent}
-                                showsVerticalScrollIndicator={false}
-                                 // onEndReachedThreshold={0} //滚动距底部0像素触发
-                                onRefresh={this._onRefresh.bind(this)} //刷新
-                                // onEndReached={this._onEndReach.bind(this)} //分页处理函数
-                                refreshing={this.props.isRefreshing} //刷新加载中提示
-                                // ListFooterComponent={this._renderFooter.bind(this)}//分页底部提示框
-                                // getItemLayout={(data, index) => ({ length: 75, offset: (74 + 1) * index, index })}
-                            />
-                        </View>
-                        <View style={{height: 48, width: '100%'}}></View>
-                    {/* </View> */}
+            <View style={{backgroundColor: '#fff', flex: 1, position: 'relative'}}>
+                <View style={styles.MDList}>
+                    <FlatList
+                        data={this.state.data}
+                        style={{height: height}}
+                        ref={(flatList) => this._flatList = flatList}
+                        renderItem={this._randomItem}
+                        keyExtractor={this._keyExtractor}
+                        ListEmptyComponent={this.EmptyList}
+                        ListHeaderComponent={HeaderComponent}
+                        showsVerticalScrollIndicator={false}
+                        // onEndReachedThreshold={0} //滚动距底部0像素触发
+                        onRefresh={this._onRefresh.bind(this)} //刷新
+                        // onEndReached={this._onEndReach.bind(this)} //分页处理函数
+                        refreshing={this.props.isRefreshing} //刷新加载中提示
+                        // ListFooterComponent={this._renderFooter.bind(this)}//分页底部提示框
+                        // getItemLayout={(data, index) => ({ length: 75, offset: (74 + 1) * index, index })}
+                    />
+                </View>
+                <View style={{height: 48, width: '100%'}}></View>
+                {/* </View> */}
                 {/* // </ScrollView> */}
                 <View
                     style={{
@@ -356,8 +336,8 @@ class assetDetails extends Component {
                             // height : 48
                         }}
                         onPress={() => this.props.navigation.navigate('ItemDeExEkttail', {
-                            headerTitle: this.state.headerTitleIn,
-                            addressEKT: this.state.addressEKT
+                            headerTitle: '转入' + token,
+                            addressEKT: addressEKT
                         })}
                         underlayColor='#ffffff'
                     >
@@ -378,12 +358,14 @@ class assetDetails extends Component {
                         }}
                         underlayColor='#ffcb00'
                         onPress={() => this.props.navigation.navigate('OutCoin1', {
-                            headerTitle: this.state.headerTitleOut,
-                            transToken: this.state.transToken,
-                            transTokenTotalNum: this.state.transTokenTotalNum,
+                            headerTitle: '转出' + token,
+                            transToken: token,
+                            transTokenTotalNum: tokenTotalNum,
                             addressEKT: addressEKT,
                             privkey: privkey,
-                            callback:()=>{this._onRefresh()}
+                            callback: () => {
+                                this._onRefresh()
+                            }
                         })}>
                         <Text
                             style={{
@@ -401,8 +383,8 @@ class assetDetails extends Component {
 }
 
 function mapStateToProps(state) {
-    let {itemDetails, init,isRefreshing} = state.wallet;
-    return {itemDetails, init,isRefreshing};
+    let {itemDetails, init, isRefreshing} = state.wallet;
+    return {itemDetails, init, isRefreshing};
 }
 
 export default connect(mapStateToProps)(assetDetails)

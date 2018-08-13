@@ -61,7 +61,8 @@ class outcoin2 extends Component {
 			showPass: false,
 			showMiddle: true,
 			//备注
-			notice:''
+			notice:'',
+			height : 0
 
 		};
 	}
@@ -194,12 +195,15 @@ class outcoin2 extends Component {
 	_fail = () => {
 		console.log('==========fail')
 	}
-
+	onContentSizeChange(event) {
+		this.setState({ height: event.nativeEvent.contentSize.height });
+		console.log(this.state.height);
+		
+	}
 	render() {
 		let {placeholderFirst,placeholderSecond,transNumberInput, wallettitle,showPass,showMiddle,enableClick,unableClick,notice} = this.state;
 		let {transToken, inAddress, transTokenTotalNum} = this.props.navigation.state.params;
 		let {borderColor,color,backgroundColor,disabled} = (transNumberInput>0&&transNumberInput<=transTokenTotalNum) ? enableClick : unableClick ;
-		console.log("xxxx", transTokenTotalNum,transNumberInput);
 		let _renderClean = (transNumberInput)
 			? (
 				<ImageBackground source={IMG_CLEAN} style={{width: 13, height: 13}}>
@@ -296,23 +300,21 @@ class outcoin2 extends Component {
 									color: '#7d7d7d',
 									textAlign: 'left'
 								}}>* 请仔细核对并确认信息，转出后无法撤销</Text>
-							<View style={styles.notice}>
+							<View style={{
+								marginTop: 5,
+								borderWidth: 0.4,
+								borderColor: "#b7b7b7",
+								borderRadius: 2 
+							}}>
 								<TextInput
-									style={{
-										fontSize: 12,
-										color: "#444444",
-										fontFamily: "PingFangSC-Regular",
-										padding: 0 ,
-										lineHeight: 24,
-										marginLeft : 16,
-										maxHeight: 72,
-									}}
+									style={[{fontSize: 12,color: "#444444",fontFamily: "PingFangSC-Regular",padding: 0 , marginLeft : 8 , marginRight : 8}, { height: Math.min(72, this.state.height) ,lineHeight:24}]}
 									multiline={true}
 									placeholder='添加备注'
 									// textAlignVertical="top"
 									underlineColorAndroid="transparent"
 									onChangeText={(notice) => this.setState({ notice })}
 									value={notice}
+									onContentSizeChange={this.onContentSizeChange.bind(this)}
 								></TextInput>
 							</View>
 						</View>
@@ -363,13 +365,5 @@ function mapStateToProps(state) {
 export default connect(mapStateToProps)(outcoin2);
 
 const styles = StyleSheet.create({
-notice : {
-	marginTop: 5,
-	borderWidth: 0.4,
-	borderColor: "#b7b7b7",
-	borderRadius : 1,
-	height : 24,
-	flexDirection : 'row',
-	alignItems : 'center'
-}
+
 });

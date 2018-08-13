@@ -88,6 +88,17 @@ export default class changePas extends Component {
 					})
 				}
 				break;
+
+			case 'wakeUp' :
+				if (newPas !== againNewPas) {
+					toastShort('两次输入不一致，请重新输入！')
+				} else {
+					this.props.navigation.navigate('App', {
+						addressEKT: addressEKT,
+						privkey : privkey
+					})
+				}
+				break;
 		
 			default:
 				break;

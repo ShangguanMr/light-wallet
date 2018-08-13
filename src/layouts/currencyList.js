@@ -11,7 +11,8 @@ import {
 	ImageBackground,
 	Dimensions,
 	FlatList,
-	SectionList
+	SectionList,
+	TouchableHighlight
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -57,29 +58,26 @@ export default class currencyList extends Component {
 	_listItem = ({item,index}) => {
 		let Status = item.status || false ;
 		return (
-			<View style={ styles.itemContainer}>
-				<View style={styles.item}>
-					<View style={ styles.leftCon}>
-						<ImageBackground
-							style={styles.leftBorder}
-							source={require('../assets/img/logo.png')} >
-						</ImageBackground>
-						<View style={ styles.leftWord }>
-							<Text>{item.name}</Text>
-							<Text>{item.name}</Text>
+			<TouchableHighlight onPress={ ()=>this.test(item,index)} underlayColor='#fff'>
+				<View style={ styles.itemContainer}>
+					<View style={styles.item}>
+						<View style={ styles.leftCon}>
+							<ImageBackground
+								style={styles.leftBorder}
+								source={require('../assets/img/logo.png')} >
+							</ImageBackground>
+							<View style={ styles.leftWord }>
+								<Text>{item.name}</Text>
+								<Text>{item.name}</Text>
+							</View>
 						</View>
-					</View>
-					<ImageBackground
-						style={styles.icon}
-						source={ Status ? require('../assets/img/reduce.png') : require('../assets/img/add.png')}
-					>
-						<Text 
+						<ImageBackground
 							style={styles.icon}
-							onPress={ () => { this.test(item,index) }}
-						></Text>
-					</ImageBackground>
+							source={ Status ? require('../assets/img/reduce.png') : require('../assets/img/add.png')}
+						></ImageBackground>
+					</View>
 				</View>
-			</View>
+			</TouchableHighlight>
 		)
 	}
 	test(item,index){

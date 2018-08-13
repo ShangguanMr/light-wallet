@@ -16,7 +16,7 @@ import {
     InteractionManager
 } from "react-native";
 import Toast from '../components/toast';
-import {resetFP} from '../utils/common_utils'
+import {resetNavigation} from '../utils/common_utils'
 
 const IMG_LEFTROW = require('../assets/img/leftrow.png')
 
@@ -57,18 +57,11 @@ export default class createSuccess extends Component {
         let {privkey, addressEKT} = this.props.navigation.state.params;
         console.log('====>', addressEKT)
         InteractionManager.runAfterInteractions(() => {
-            // this.props.navigation.navigate('App', {
-            //     showBackUp: showBackUp,
-            //     addressEKT: addressEKT,
-            //     privkey: privkey
-            // })
-            this.props.navigation.dispatch(
-                resetFP(0, 'App', {
-                    showBackUp: showBackUp,
-                    addressEKT: addressEKT,
-                    privkey: privkey
-                })
-            )
+            this.props.navigation.dispatch(resetNavigation(0, 'App', {
+                showBackUp: showBackUp,
+                addressEKT: addressEKT,
+                privkey: privkey
+            }))
         })
 
     }
