@@ -150,7 +150,7 @@ class assetDetails extends Component {
             }
             return ""
         });
-        console.log("xxxxxxValue", value)
+        console.log("xxxxxxValue", value);
         return value
     }
 
@@ -217,17 +217,19 @@ class assetDetails extends Component {
             });
             console.log("最终结果res==>", res, heights);
             if (heights.length > 0) {
-                // for(let i=0;i<heights.length;i++){
-                //     await that.fromHeightSearch(heights[i])
-                // }
                 let ress;
                 heights.map(async (item, index) => {
-                    ress = await that.fromHeightSearch(item, address);
-                    console.log("交易信息===》0", ress, txList)
+                    ress=await that.fromHeightSearch(item, address);
+                    if(index===(heights.length-1)){
+                        console.log("交易信息===》22", ress, "txList===>222", txList)
+                        that.setState({
+                            data:ress
+                        })
+                    }
+                    console.log("交易信息===》", "txList===>222", txList);
                 });
-                console.log("交易信息===》", ress, txList)
+                console.log("交易信息===》1", "txList===>222", txList);
             }
-            console.log("交易信息===》2", txList)
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
         }
@@ -255,13 +257,14 @@ class assetDetails extends Component {
     }
 
     useStar(vl) {
-        var start = vl.length / 3;
+        var start = vl.length / 3 || 0;
         var hideVl = vl.substr(start, start);
         var showVl = vl.replace(hideVl, "***");
         return showVl;
     }
 
     _randomItem = ({item, index}) => {
+        console.log("item====>", item);
         let {token} = this.props.navigation.state.params;
         let failIcon = item.result
             ? <View/>
@@ -322,8 +325,9 @@ class assetDetails extends Component {
                                 color: '#444444',
                                 textAlign: 'left',
                             }}
-                            numberOfLines={1}
-                        >{this.useStar(item.transitionAddressIn)}</Text>
+                            numberOfLines={1}>
+                            {/*{this.useStar(item.transitionAddressIn)}*/}
+                            </Text>
                         <Text
                             style={{
                                 fontFamily: 'PingFangSC-Regular',
