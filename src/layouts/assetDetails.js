@@ -212,23 +212,21 @@ class assetDetails extends Component {
         if (!!leafhash) {
             let result = await this.fromHashGetValue(leafhash);
             console.log("通过叶子节点查到的最终结果", result);
-            let res = await this.halfHeightSearch(1, 400, address).then((res) => {
-                console.log("结果", res, heights);
-            });
+            let res = await this.halfHeightSearch(1, height, address);
             console.log("最终结果res==>", res, heights);
             if (heights.length > 0) {
                 let ress;
                 heights.map(async (item, index) => {
                     ress=await that.fromHeightSearch(item, address);
                     if(index===(heights.length-1)){
-                        console.log("交易信息===》22", ress, "txList===>222", txList)
+                        console.log("交易信息===》22", ress, "txList===>222", txList);
                         that.setState({
-                            data:ress
+                            data:ress,
                         })
                     }
-                    console.log("交易信息===》", "txList===>222", txList);
+                    // console.log("交易信息===》", "txList===>222", txList);
                 });
-                console.log("交易信息===》1", "txList===>222", txList);
+                // console.log("交易信息===》1", "txList===>222", txList);
             }
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
@@ -264,7 +262,7 @@ class assetDetails extends Component {
     }
 
     _randomItem = ({item, index}) => {
-        console.log("item====>", item);
+        console.log("item====>1111", item);
         let {token} = this.props.navigation.state.params;
         let failIcon = item.result
             ? <View/>
