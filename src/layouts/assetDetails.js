@@ -72,6 +72,35 @@ class assetDetails extends Component {
         let value = "";
         if (!!hash) {
             const {dispatch} = this.props;
+            value = await dispatch(getWallet({"hash": hash})).then((res)=>{
+                return res;
+            });
+            console.log("xxxxxxValue",value)
+            return value
+        } else {
+            return value
+
+        }
+    }
+
+    //判断叶子节点
+    async getLeafhash(hash, address) {
+        let str_address = "";
+        let result = await this.fromHashGetValue(hash)
+
+        console.log("xxxxxxresult",result);
+        if (result['leaf']){
+            let a = result.sons[0].hash;
+            console.log(a);
+            return  a
+        } else {
+            //非叶子节点
+            for (let i = 0; i < result['sons'].length; i++) {
+                if (address.indexOf(result['sons'][i].pathValue) === 0) {
+                    str_address = address.substr(result['sons'][i].pathValue.length);
+                    this.getLeafhash(result['sons'][i]['hash'], str_address);
+                }
+            }
             value = await dispatch(getWallet({"hash": hash}));
             console.log("xxxxxxValue", value)
             return value
@@ -196,6 +225,7 @@ class assetDetails extends Component {
         }
     }
 
+
     async componentDidMount() {
         let that = this;
         let params = {};
@@ -206,7 +236,24 @@ class assetDetails extends Component {
         let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
+      
         console.log("获取到初始的最终的height，statRoot", height, statRoot);
+      
+        let leafhash = await this.getLeafhash(statRoot, address).then((res)=>{
+            console.log("xxxxxx",res);
+            return res;
+        });
+        // let leafhash=await this.fromHashGetValue(statRoot).then((res)=>{
+        //     return res
+        // })
+        console.log("leafhash===>",leafhash,)
+        // if (!!leafhash) {
+        //     let result = await this.fromHashGetValue(leafhash);
+        //     console.log("通过叶子节点查到的最终结果", result);
+        // } else {
+        //     console.log("新创建的钱包地址，还没有任何交易")
+        // }
+
         let leafhash = await this.getLeafhash(statRoot, address);
         console.log("leafhash===>", leafhash,);
         if (!!leafhash) {
@@ -233,7 +280,6 @@ class assetDetails extends Component {
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
         }
-
     }
 
     componentWillUnmount() {
@@ -468,10 +514,7 @@ class assetDetails extends Component {
         )
     }
 }
-
-function
-
-mapStateToProps(state) {
+function mapStateToProps(state) {
     let {itemDetails, init, isRefreshing} = state.wallet;
     return {itemDetails, init, isRefreshing};
 }

@@ -14,7 +14,7 @@ import MeItem from '../../components/meItem.js';
 import Toast from '../../components/toast.js';
 import Password from '../../components/password.js';
 import {connect} from 'react-redux';
-import {removeAll,resetFP} from '../../utils/common_utils'
+import {resetNavigation,clearDataByKey, removeStorage} from '../../utils/common_utils'
 //引用lodash工具;
 var _ = require("lodash");
 import {getUserInfo} from '../../reducers/actions/me/me';
@@ -125,10 +125,12 @@ class setting extends Component {
 					showPass: false
 				})
 				console.log('exit App');
-				removeAll();
+				//清除所有数据
+				removeStorage('address');
+				removeStorage('privkey');
 				//重定向到createWallet页面
 				InteractionManager.runAfterInteractions( () => {
-					this.props.navigation.dispatch(resetFP(0,'CreateWallet'));
+					this.props.navigation.dispatch(resetNavigation(0,'Splash'));
 				})
 			})
 		}else{

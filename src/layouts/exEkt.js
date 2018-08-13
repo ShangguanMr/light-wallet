@@ -35,7 +35,7 @@ export default class exEkt extends Component {
 
 	_setContent() { 
 		let { addressEKT } = this.props.navigation.state.params ;
-		Clipboard.setString(addressEKT)
+		Clipboard.setString('0x'+addressEKT)
 	}
 
 	componentDidMount() {
@@ -51,12 +51,12 @@ export default class exEkt extends Component {
 		return (
 			<View style={styles.container}>
 				<QRCode
-					value={addressEKT}
+					value={'0x'+ addressEKT}
 					size={250}
 					bgColor='black'
 					fgColor='white' />
 				<View style={{ width: '100%', borderBottomWidth: 1, borderBottomColor: '#dddddd'}}>
-					<Text style={{ textAlign: 'center', fontSize: 14, lineHeight: 34, color: '#444444',marginTop : 30}}>
+					<Text style={{ textAlign: 'center', fontSize: 14, lineHeight: 28, color: '#444444',marginTop : 30 , marginLeft : 16 , marginRight : 16}}>
 						{'0x'+addressEKT }
 					</Text>
 				</View>
