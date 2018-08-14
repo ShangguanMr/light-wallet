@@ -27,8 +27,8 @@ const logoEKT = require('../../assets/img/logoEKT.png');
 class wallet extends Component {
     constructor(props) {
         super(props);
-        this.fromHashGetValue = this.fromHashGetValue.bind(this);
-        this.getLeafhash = this.getLeafhash.bind(this);
+        // this.fromHashGetValue = this.fromHashGetValue.bind(this);
+        // this.getLeafhash = this.getLeafhash.bind(this);
         this.state = {
             addressEKT: '',
             allmoney: 0,

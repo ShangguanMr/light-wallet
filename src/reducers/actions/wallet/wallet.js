@@ -16,7 +16,7 @@ export function getWallet(params) {
             method: "GET",
             params: params
         }).then((res) => {
-            console.log("请求数据成功==>>>", res);
+            // console.log("请求数据成功==>>>", res);
             dispatch({type: "getWalletInfoSuccess", data: res});
             return Promise.resolve(res);
         }).catch((err) => {
@@ -37,7 +37,7 @@ export function getLastBlock(params) {
             method: "GET",
             params: params
         }).then((res) => {
-            console.log("请求数据成功==>>>", res);
+            // console.log("请求数据成功==>>>", res);
             dispatch(getLastBlockSuccess(res));
             return Promise.resolve(res);
         }).catch((err) => {
@@ -71,7 +71,7 @@ export function getBlocks(params) {
             method: "GET",
             params: params
         }).then((res) => {
-            console.log("请求数据成功==>>>", res);
+            // console.log("请求数据成功==>>>", res);
             dispatch(getBlocksSuccess(res));
             return Promise.resolve(res);
         }).catch((err) => {

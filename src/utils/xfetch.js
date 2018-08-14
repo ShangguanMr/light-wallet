@@ -130,8 +130,8 @@ export async function xFetch(url, options) {
     if (opts.body) {
         opts.body = JSON.stringify(opts.body)
     }
-    console.log("检查url-------", mergeUrl);
-    console.log("查看opts参数（body）--------", opts);
+    // console.log("检查url-------", mergeUrl);
+    // console.log("查看opts参数（body）--------", opts);
 
     return Promise.race([fetch(mergeUrl, opts),
         new Promise(function (resolve, reject) {

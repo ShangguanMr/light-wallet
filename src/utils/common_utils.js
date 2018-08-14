@@ -114,11 +114,11 @@ export function getStorage(key) {
                     // TODO;
                     console.log("NotFoundError", err.name);
                     return resolve("")
-                    // break;
+                // break;
                 case 'ExpiredError':
                     // TODO
                     console.log("ExpiredError", err.name);
-                    // break;
+                // break;
             }
             return reject("")
         });
@@ -156,4 +156,54 @@ export function resetFP(index = 0, routeName, params = {}) {
         ],
 
     });
+}
+
+//处理返回的交易数据
+export function resetData(arr,address) {
+    let datas = [];
+    //处理数据；
+    arr.map((item, index) => {
+        let data = {};
+        data['id'] = index;
+        data['number'] = item['amount'];
+        data['time'] = dateTrans(item['time']);
+        data['transitionAddressIn'] = item['to'];
+        data['transitionAddressOut'] = item['from'];
+        data['transitionTicket'] = "";
+        data['result'] = true;
+        if (item['from'] === address) {
+            data['transType'] = '转出';
+        } else {
+            data['transType'] = '转入';
+        }
+        datas.push(data);
+    });
+    return datas;
+}
+
+//时间戳转换1
+export function oldDateTrans(dates = "") {
+    let date = new Date(dates);
+    let Y = date.getFullYear() + '-';
+    let M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1) + '-';
+    let D = date.getDate() + ' ';
+    let h = date.getHours() + ':';
+    let m = date.getMinutes() + ':';
+    let s = date.getSeconds();
+    console.log(Y + M + D + h + m + s);
+    return (Y + M + D + h + m + s);
+}
+
+//时间戳转换2
+export function dateTrans(date) {
+    let t = new Date(date).toLocaleString();
+    return t;
+}
+
+//裁剪字符串
+export function useStar(vl="") {
+    var start = vl.length * 2 / 3;
+    var hideVl = vl.substr(11, start);
+    var showVl = vl.replace(hideVl, "***");
+    return showVl;
 }

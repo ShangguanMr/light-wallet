@@ -21,28 +21,20 @@ import {
     getUserInfo,
     readyTransactionList
 } from "../reducers/actions/wallet/wallet"
-import {width, height, getStorage} from "../utils/common_utils";
+import {width, height, getStorage, useStar, resetData, dateTrans} from "../utils/common_utils";
 
 let heights = [];
 let txList = [];
-
+let address="";
 class assetDetails extends Component {
     constructor(props) {
         super(props);
-        this.getLeafhash = this.getLeafhash.bind(this);
-        this.fromHashGetValue = this.fromHashGetValue.bind(this);
-        this.halfHeightSearch = this.halfHeightSearch.bind(this);
-        this.fromHeightSearch = this.fromHeightSearch.bind(this);
         this.state = {
             transToken: '',
             transTokenTotalNum: '',
             transTokenTotalPrice: '',
-
-            //转入跳转的headertitle
-            headerTitleIn: '',
-            //转出跳转的headertitle
-            headerTitleOut: '',
-
+            headerTitleIn: '',   //转入跳转的headertitle
+            headerTitleOut: '',  //转出跳转的headertitle
             dataNull: [],
             data: this._sourceData,
             show: true,
@@ -63,21 +55,16 @@ class assetDetails extends Component {
         }
     ]
 
-    componentWillMount() {
-
-    }
-
     //通过hash获得value；
     async fromHashGetValue(hash) {
         let value = "";
         if (!!hash) {
             const {dispatch} = this.props;
             value = await dispatch(getWallet({"hash": hash}));
-            console.log("xxxxxxValue", value)
+            // console.log("xxxxxxValue", value)
             return value
         } else {
             return value
-
         }
     }
 
@@ -92,11 +79,11 @@ class assetDetails extends Component {
                 return result['sons'][0]['hash'];
             } else {
                 result['sons'].map((item, index) => {
-                    console.log("address", address);
+                    // console.log("address", address);
                     if (address.indexOf(item['pathValue']) > -1) {
                         str_address = address.substr(item['pathValue'].length);
                         path_hash = item['hash'];
-                        console.log("地址片段", str_address, path_hash);
+                        // console.log("地址片段", str_address, path_hash);
                     }
                 });
                 return that.getLeafhash(path_hash, str_address)
@@ -111,10 +98,10 @@ class assetDetails extends Component {
     async fromHeightSearch(height, address) {
         let that = this;
         let height_res = await that.fromHeighGetValue(height);
-        console.log("height--->", height, "======", height_res,);
+        // console.log("height--->", height, "======", height_res,);
         let txRoot = height_res['txRoot'];
         let tx_res = await this.fromHashGetValue(txRoot);
-        console.log("tx_res===>", txRoot, tx_res);
+        // console.log("tx_res===>", txRoot, tx_res);
         if (tx_res['sons'] !== null && tx_res['sons'].length > 0) {
             let list = [];
             let tx_item = "";
@@ -122,17 +109,19 @@ class assetDetails extends Component {
             let item_leaf_hash = await that.getLeafhash(tx_res['sons'][0]['hash'], address);
             if (!!item_leaf_hash) {
                 tx_item = await that.fromHashGetValue(item_leaf_hash);
-                console.log("item_leaf_hash====>", item_leaf_hash, tx_item);
+                // console.log("item_leaf_hash====>", item_leaf_hash, tx_item);
                 if (!!tx_item) {
                     list.push(tx_item);
-                    console.log("xxxxx=====>list11", list)
+                    // console.log("xxxxx=====>list11", list)
                 }
             }
-            console.log("xxxxx=====>list", list)
+            // console.log("xxxxx=====>list", list)
             if (!!list && list.length > 0) {
                 tx_details = await this.fromHashGetValue(list[0]['txId']);
-                console.log("tx_details===>", tx_details)
+                // console.log("tx_details===>", tx_details)
                 if (tx_details['from'] === address || tx_details['to'] === address) {
+                    tx_details['success']=list[0]['success'];
+                    tx_details['txId']=list[0]['txId'];
                     txList.push(tx_details);
                 }
             }
@@ -150,7 +139,7 @@ class assetDetails extends Component {
             }
             return ""
         });
-        console.log("xxxxxxValue", value);
+        // console.log("xxxxxxValue", value);
         return value
     }
 
@@ -163,65 +152,62 @@ class assetDetails extends Component {
         let high_statRoot = await that.fromHeighGetValue(high, "statRoot");
         let highleafhash = await that.getLeafhash(high_statRoot, address);
         let highresult = await that.fromHashGetValue(highleafhash);
-        console.log("high_result==>", highresult);
+        // console.log("high_result==>", highresult);
         let mid_statRoot = await that.fromHeighGetValue(midHeight, "statRoot");
         let midleafhash = await that.getLeafhash(mid_statRoot, address);
         let midresult = await that.fromHashGetValue(midleafhash);
-        console.log("mid_result==>", midresult);
+        // console.log("mid_result==>", midresult);
         let low_statRoot = await that.fromHeighGetValue(low, "statRoot");
         let lowleafhash = await that.getLeafhash(low_statRoot, address);
         let lowresult = await that.fromHashGetValue(lowleafhash);
-        console.log("low_result==>", lowresult);
+        // console.log("low_result==>", lowresult);
         if ((lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) && (midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce'])) {
-            console.log("没有交易==》", low, midHeight, high);
+            // console.log("没有交易==》", low, midHeight, high);
             heights.push(low);
-            console.log("heights===>", heights);
+            // console.log("heights===>", heights);
             return heights;
         } else if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
             //左右区间都有交易
-            console.log("左右区间都有交易", low, midHeight, high);
+            // console.log("左右区间都有交易", low, midHeight, high);
             await that.halfHeightSearch(low, midHeight, address);
             await that.halfHeightSearch(midHeight + 1, high, address);
-            // return [low, midHeight, midHeight + 1, high]
         } else if ((lowresult['amount'] === midresult['amount'] && lowresult['nonce'] === midresult['nonce']) && (midresult['amount'] !== highresult['amount'] || midresult['nonce'] !== highresult['nonce'])) {
             //左边区间没有，只考虑右边；
-            console.log("左边区间没有，只考虑右边", midHeight, high);
-            // return [midHeight + 1, high];
+            // console.log("左边区间没有，只考虑右边", midHeight, high);
             await that.halfHeightSearch(midHeight + 1, high, address);
         } else if ((lowresult['amount'] !== midresult['amount'] || lowresult['nonce'] !== midresult['nonce']) && (midresult['amount'] === highresult['amount'] && midresult['nonce'] === highresult['nonce'])) {
             //右边区间没有，只考虑左边；
             console.log("右边区间没有，只考虑左边", low, midHeight);
-            // return [low, midHeight]
             await that.halfHeightSearch(low, midHeight, address)
         }
     }
 
-    async componentDidMount() {
+    async componentWillMount() {
         let that = this;
         let params = {};
         const {dispatch} = this.props;
-        let address = await getStorage("address");
+        address = await getStorage("address");
         params['address'] = address;
         //通过last获取对用的height，statRoot
         let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        console.log("获取到初始的最终的height，statRoot", height, statRoot);
+        // console.log("获取到初始的最终的height，statRoot", height, statRoot);
         let leafhash = await this.getLeafhash(statRoot, address);
-        console.log("leafhash===>", leafhash,);
+        // console.log("leafhash===>", leafhash,);
         if (!!leafhash) {
             let result = await this.fromHashGetValue(leafhash);
-            console.log("通过叶子节点查到的最终结果", result);
+            // console.log("通过叶子节点查到的最终结果", result);
             let res = await this.halfHeightSearch(1, height, address);
-            console.log("最终结果res==>", res, heights);
+            // console.log("最终结果res==>", res, heights);
             if (heights.length > 0) {
                 let ress;
                 heights.map(async (item, index) => {
-                    ress=await that.fromHeightSearch(item, address);
-                    if(index===(heights.length-1)){
-                        console.log("交易信息===》22", ress, "txList===>222", txList);
+                    ress = await that.fromHeightSearch(item, address);
+                    if (index === (heights.length - 1)) {
+                        console.log("交易信息===》22", ress.length, ress, "txList===>222", txList.length, txList);
                         that.setState({
-                            data:ress,
+                            data:ress
                         })
                     }
                     // console.log("交易信息===》", "txList===>222", txList);
@@ -231,12 +217,16 @@ class assetDetails extends Component {
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
         }
+    }
+
+    componentDidMount() {
 
     }
 
     componentWillUnmount() {
         heights = [];
         txList = [];
+        address='';
     }
 
     exDetail(item) {
@@ -253,15 +243,17 @@ class assetDetails extends Component {
             result: item.result
         })
     }
-
-    useStar(vl) {
-        var start = vl.length / 3 || 0;
-        var hideVl = vl.substr(start, start);
-        var showVl = vl.replace(hideVl, "***");
-        return showVl;
-    }
-
     _randomItem = ({item, index}) => {
+        item['number']=item['amount'];
+        item['transitionAddressIn'] = item['to'];
+        item['transitionAddressOut'] = item['from'];
+        item['transitionTicket'] = item['txId'];
+        item['result'] = item['success'];
+        if(item['from']===address){
+            item['transType']='转出';
+        }else if(item['to']===address){
+            item['transType']='转入';
+        }
         console.log("item====>1111", item);
         let {token} = this.props.navigation.state.params;
         let failIcon = item.result
@@ -324,8 +316,8 @@ class assetDetails extends Component {
                                 textAlign: 'left',
                             }}
                             numberOfLines={1}>
-                            {/*{this.useStar(item.transitionAddressIn)}*/}
-                            </Text>
+                            {useStar(item.transitionAddressIn)}
+                        </Text>
                         <Text
                             style={{
                                 fontFamily: 'PingFangSC-Regular',
@@ -333,7 +325,7 @@ class assetDetails extends Component {
                                 color: '#444444',
                                 textAlign: 'right'
                             }}
-                        >{item.time}</Text>
+                        >{dateTrans(item.time)}</Text>
                     </View>
                 </View>
             </TouchableHighlight>
@@ -344,7 +336,7 @@ class assetDetails extends Component {
         console.log("刷新----》",);
     }
 
-    _keyExtractor = (item, index) => index + '';
+    _keyExtractor = (item, index) => `${item.txId}`;
 
     EmptyList() {
         return (
@@ -364,6 +356,7 @@ class assetDetails extends Component {
 
     render() {
         let {addressEKT, privkey, token, tokenTotalNum, tokenTotalPrice,} = this.props.navigation.state.params;
+        console.log("=============>",this.state.data,this.state.data.length);
         // 头部组件；
         const HeaderComponent = () => {
             return (
@@ -467,18 +460,12 @@ class assetDetails extends Component {
     }
 }
 
-function
-
-mapStateToProps(state) {
+function mapStateToProps(state) {
     let {itemDetails, init, isRefreshing} = state.wallet;
     return {itemDetails, init, isRefreshing};
 }
 
-export default connect(mapStateToProps)
-
-(
-    assetDetails
-)
+export default connect(mapStateToProps)(assetDetails)
 
 const
     styles = StyleSheet.create({

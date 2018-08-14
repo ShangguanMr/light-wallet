@@ -133,7 +133,6 @@ class outcoin2 extends Component {
 		tx['EventType'] = "transaction";
 		tx['sign'] = data.sign;
 		let nonce = tx['nonce'];
-		nonce += 1;
 		setStorage("nonce", nonce);
 		this.props.dispatch(transactionDetails(tx)).then( res => {
 			if(res.status === 0 && res.msg === 'ok'){
@@ -157,7 +156,8 @@ class outcoin2 extends Component {
 	//给 h5 发消息
 	async giveh5() {
 		let nonce= await getStorage("nonce");
-		let date = new Date();
+        nonce += 1;
+        let date = new Date();
 		let {transNumberInput}=this.state;
 		let {addressEKT,privkey,inAddress}=this.props.navigation.state.params;
 		let time = date.valueOf();
