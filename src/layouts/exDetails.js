@@ -20,53 +20,34 @@ const IMG_TRANSITIONFAIL = require('../assets/img/fail.png')
 export default class exDetail extends Component {
 	constructor(props) {
 		super(props);
-		this.state = {
-			transType : '',
-			number: '',
-			transitionTicket: '',
-			time: '',
-			transitionAddressIn: '',
-			transitionAddressOut: '',
-			result : true
-		};
 	}
 
 	componentWillMount () {
-		let { transType , number , transitionTicket , time , transitionAddressIn , transitionAddressOut , result } = this.props.navigation.state.params ;
-		this.setState({
-			transType : transType,
-			number: number,
-			//交易单号
-			transitionTicket: transitionTicket,
-			time: time,
-			transitionAddressIn: transitionAddressIn,
-			transitionAddressOut: transitionAddressOut,
-			result: result
-		})
 	}
 
 	render() {
+		let { transType , number , transitionTicket , time , transitionAddressIn ,transitionAddressOut , result } = this.props.navigation.state.params ;
 		return (
 			<View style={{height : '100%', backgroundColor : '#ffffff'}}>
 				<View style={styles.TD}>
 					<View style={styles.TDH}>
-						<Image source={ this.state.result ?IMG_TRANSITIONSUCCESS:IMG_TRANSITIONFAIL} style={{ width: 90, height: 90 }}></Image>
-						<Text style={styles.TDHText}>{this.state.transType === '转入' ? '+' : '-'} {this.state.number}</Text>
+						<Image source={ result ?IMG_TRANSITIONSUCCESS:IMG_TRANSITIONFAIL} style={{ width: 90, height: 90 , marginLeft:(width-90)/2 }}></Image>
+						<Text style={styles.TDHText}>{transType === '转入' ? '+' : '-'} {number}</Text>
 					</View>
 					<View style={styles.TDF}>
 						<View style={styles.TDFStyle}>
 							<View style={{ paddingBottom: 20 }}>
 								<View style={styles.TDFStyleText}>
 									<Text style={styles.TDFStyleTextTitle}>交易类型</Text>
-									<Text style={styles.TDFStyleTextData}>{this.state.transType }</Text>
+									<Text style={styles.TDFStyleTextData}>{transType }</Text>
 								</View>
 								<View style={styles.TDFStyleText}>
 									<Text style={styles.TDFStyleTextTitle}>交易单号</Text>
-									<Text style={styles.TDFStyleTextData}>{this.state.transitionTicket}</Text>
+									<Text style={styles.TDFStyleTextData}>{transitionTicket}</Text>
 								</View>
 								<View style={styles.TDFStyleText}>
 									<Text style={styles.TDFStyleTextTitle}>交易时间</Text>
-									<Text style={styles.TDFStyleTextData}>{this.state.time}</Text>
+									<Text style={styles.TDFStyleTextData}>{time}</Text>
 								</View>
 							</View>
 						</View>
@@ -74,11 +55,11 @@ export default class exDetail extends Component {
 							<View style={{ paddingBottom: 20 }}>
 								<View style={styles.TDFStyleText}>
 									<Text style={styles.TDFStyleTextTitle}>转入地址</Text>
-									<Text style={styles.TDFStyleTextData}>{this.state.transitionAddressIn}</Text>
+									<Text style={styles.TDFStyleTextData}>{transitionAddressIn}</Text>
 								</View>
 								<View style={styles.TDFStyleText}>
 									<Text style={styles.TDFStyleTextTitle}>转出地址</Text>
-									<Text style={styles.TDFStyleTextData}>{this.state.transitionAddressOut}</Text>
+									<Text style={styles.TDFStyleTextData}>{transitionAddressOut}</Text>
 								</View>
 							</View>
 						</View>
@@ -96,7 +77,8 @@ const styles = StyleSheet.create({
 		justifyContent: "center"
 	},
 	TDH: {
-		marginTop: 50
+		marginTop: 50,
+		width:width
 	},
 	TDHText: {
 		marginTop: 15,
@@ -134,7 +116,8 @@ const styles = StyleSheet.create({
 		marginLeft: 15,
 		fontFamily: "PingFangSC-Regular",
 		fontSize: 12,
-		color: "#231815"
+		color: "#231815",
+		width : width - 97
 	},
 	TDFAddress: {
 		marginLeft: 16,

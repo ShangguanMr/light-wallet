@@ -85,33 +85,6 @@ class assetDetails extends Component {
 
     //判断叶子节点
     async getLeafhash(hash, address) {
-        let str_address = "";
-        let result = await this.fromHashGetValue(hash)
-
-        console.log("xxxxxxresult",result);
-        if (result['leaf']){
-            let a = result.sons[0].hash;
-            console.log(a);
-            return  a
-        } else {
-            //非叶子节点
-            for (let i = 0; i < result['sons'].length; i++) {
-                if (address.indexOf(result['sons'][i].pathValue) === 0) {
-                    str_address = address.substr(result['sons'][i].pathValue.length);
-                    this.getLeafhash(result['sons'][i]['hash'], str_address);
-                }
-            }
-            value = await dispatch(getWallet({"hash": hash}));
-            console.log("xxxxxxValue", value)
-            return value
-        } else {
-            return value
-
-        }
-    }
-
-    //判断叶子节点
-    async getLeafhash(hash, address) {
         let that = this;
         let str_address = "";
         let path_hash = "";
@@ -238,22 +211,6 @@ class assetDetails extends Component {
         });
       
         console.log("获取到初始的最终的height，statRoot", height, statRoot);
-      
-        let leafhash = await this.getLeafhash(statRoot, address).then((res)=>{
-            console.log("xxxxxx",res);
-            return res;
-        });
-        // let leafhash=await this.fromHashGetValue(statRoot).then((res)=>{
-        //     return res
-        // })
-        console.log("leafhash===>",leafhash,)
-        // if (!!leafhash) {
-        //     let result = await this.fromHashGetValue(leafhash);
-        //     console.log("通过叶子节点查到的最终结果", result);
-        // } else {
-        //     console.log("新创建的钱包地址，还没有任何交易")
-        // }
-
         let leafhash = await this.getLeafhash(statRoot, address);
         console.log("leafhash===>", leafhash,);
         if (!!leafhash) {
