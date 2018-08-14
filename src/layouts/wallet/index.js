@@ -36,7 +36,7 @@ class wallet extends Component {
                 {
                     icon: logoEKT,
                     name: 'EKT',
-                    number: 10,
+                    number: 100000000,
                     price: 0
                 }
             ],
@@ -124,7 +124,7 @@ class wallet extends Component {
         navigate('AssetDetails', {
             headerTitle: item.name,
             token: item.name,
-            tokenTotalNum: item.number,
+            tokenTotalNum: this.state.allmoney,
             tokenTotalPrice: item.price,
             addressEKT: state.params.addressEKT,
             privkey: state.params.privkey
