@@ -145,7 +145,7 @@ export function clearDataByKey(key) {
 }
 
 //路由重定向reset封装
-export function resetFP(index = 0, routeName, params = {}) {
+export function resetNavigation(index = 0, routeName, params = {}) {
     return StackActions.reset({
         index: index,
         actions: [
@@ -154,7 +154,6 @@ export function resetFP(index = 0, routeName, params = {}) {
                 params: params
             })
         ],
-
     });
 }
 

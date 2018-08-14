@@ -10,7 +10,7 @@ import {
     ImageBackground
 } from 'react-native';
 import SplashScreen from 'react-native-splash-screen';
-import {height,width, navigationResetTo} from '../utils/common_utils'
+import {height,width, navigationResetTo,getStorage,resetNavigation} from '../utils/common_utils'
 
 const launchgif = require('../assets/img/toplaunch.gif');
 const logo = require('../assets/img/logo.png');
@@ -21,14 +21,27 @@ export default class Launch extends Component {
         super(props);
     }
 
-    componentDidMount() {
+    async componentDidMount() {
         SplashScreen.hide();
-        const {navigation} = this.props;
+        let address = await getStorage('address')
+        let privkey = await getStorage('privkey') 
+        console.log("===>",typeof(address),privkey,address&&privkey);
+        let {navigation} = this.props;
         console.log("xxxx", navigation, this.props);
-        setTimeout(() => {
-            navigationResetTo(navigation, "CreateWallet");
-        }, 500)
-
+        if (address&&privkey) {
+            setTimeout(() => {
+                this.props.navigation.dispatch(resetNavigation(0, "WakeUp", {
+                    showBackUp: false,
+                    addressEKT: address,
+                    privkey: privkey
+                }))
+            }, 500)
+        }else{
+            setTimeout(() => {
+                // navigationResetTo(0,navigation, "CreateWallet");
+                this.props.navigation.dispatch(resetNavigation(0,'CreateWallet'))
+            }, 500)
+        }
     }
 
     welcome = () => {

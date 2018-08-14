@@ -20,9 +20,6 @@ export default class wakeUp extends Component {
 	constructor(props) {
 		super(props);
 		this.state = {
-			//应该是进入后台页面跳转时传过来的参数
-			walletAddress: 'QUstVAm1nwLzAfXDtLvCgaCWUA1Yrqavjv',
-
 			walletPas : '' ,
 			//可点击按钮样式
 			enableClick : {
@@ -42,7 +39,7 @@ export default class wakeUp extends Component {
 	}
 
 	useStar(vl) {
-		var hideVl = vl.substr(10, vl.length-20);
+		var hideVl = vl.substr(15, vl.length-30);
 		var showVl = vl.replace(hideVl, "***");
 		return showVl;
 	}
@@ -60,6 +57,7 @@ export default class wakeUp extends Component {
 	}
 	//验证密码
 	confirmPas = () => {
+		let {addressEKT,privkey}=this.props.navigation.state.params;
 		this.getPas('password');
 		InteractionManager.runAfterInteractions( () => {
 			let {walletPas,passwordFromStorage} = this.state ;
@@ -69,6 +67,8 @@ export default class wakeUp extends Component {
 				this.props.navigation.navigate('App', {
 					showBackUp: false ,
 					//需要继续回传地址
+					addressEKT : addressEKT ,
+					privkey : privkey
 				})
 			} else {
 				this.setState({
@@ -80,8 +80,9 @@ export default class wakeUp extends Component {
 	}
 
 	render() {
-		let { walletAddress ,walletPas ,enableClick ,unableClick} = this.state ;
+		let { walletPas ,enableClick ,unableClick} = this.state ;
 		let { backgroundColor , borderColor , color , disabled} = walletPas ? enableClick : unableClick ;
+		let {addressEKT} = this.props.navigation.state.params;
 		return (
 			<View style={styles.wakeUp}>
 				<View style={styles.wakeUpContainer}>
@@ -100,9 +101,11 @@ export default class wakeUp extends Component {
 							// fontFamily:'MicrosoftYaHei',
 							fontSize: 14,
 							color: '#444444',
-							textAlign: 'center'
+							textAlign: 'center' ,
+							marginLeft : 16 ,
+							marginRight : 16 
 						}}
-					>{this.useStar(walletAddress)}</Text>
+					>{'0x'+this.useStar(addressEKT)}</Text>
 				</View>
 				<View style={styles.wakeUpPassword}>
 					<TextInput
@@ -151,7 +154,8 @@ export default class wakeUp extends Component {
 					>忘记密码？可导入私钥重置密码</Text>
 					<TouchableOpacity style={{ marginTop: 15 }} onPress={() => this.props.navigation.navigate('InPk',{
 						headerTitle : '导入私钥' ,
-						inPath : 'wakeUp'
+						inPath : 'wakeUp',
+						addressEKT : addressEKT 
 					})}>
 						<Text
 							style={{

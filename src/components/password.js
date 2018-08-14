@@ -38,7 +38,6 @@ export default class Password extends Component {
 	}
     
 	_closeModal = (visible) => {
-		console.log("xxxsxsxsxsx",visible);
 		this.setState({
 			modalVisible: visible
 		});
@@ -76,7 +75,6 @@ export default class Password extends Component {
 		let modalBackgroundStyle = {
 			backgroundColor: this.state.transparent ? 'rgba(0, 0, 0, 0.5)' : 'red',
 		};
-		console.log("xxx",this.state);
 		return (
 			<Modal
 				animationType={this.state.animationType}

@@ -177,6 +177,9 @@ export default class me extends Component {
 				}, 500);
 			}else{
 				this.setState({showPass:false})
+				setTimeout( ()=> {
+					toastShort('密码输入错误，请重新输入！')
+				},2000)
 			}
 		})
 	}

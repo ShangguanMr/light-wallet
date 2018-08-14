@@ -182,7 +182,7 @@ class assetDetails extends Component {
         }
     }
 
-    async componentWillMount() {
+    async componentDidMount() {
         let that = this;
         let params = {};
         const {dispatch} = this.props;
@@ -192,7 +192,6 @@ class assetDetails extends Component {
         let {height, statRoot} = await dispatch(getLastBlock()).then((res) => {
             return res['result']
         });
-        // console.log("获取到初始的最终的height，statRoot", height, statRoot);
         let leafhash = await this.getLeafhash(statRoot, address);
         // console.log("leafhash===>", leafhash,);
         if (!!leafhash) {
@@ -217,10 +216,6 @@ class assetDetails extends Component {
         } else {
             console.log("新创建的钱包地址，还没有任何交易")
         }
-    }
-
-    componentDidMount() {
-
     }
 
     componentWillUnmount() {
@@ -459,7 +454,6 @@ class assetDetails extends Component {
         )
     }
 }
-
 function mapStateToProps(state) {
     let {itemDetails, init, isRefreshing} = state.wallet;
     return {itemDetails, init, isRefreshing};
